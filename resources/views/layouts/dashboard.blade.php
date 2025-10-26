@@ -1,4 +1,3 @@
-{{-- resources/views/layouts/dashboard.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
@@ -35,6 +34,14 @@
         .content .subtitle{color:var(--muted)}
 
         @media (max-width:991.98px){ .dashboard-container{flex-direction:column} .sidebar{width:100%} }
+
+        .nav-title{
+            font-size:.78rem; letter-spacing:.08em; text-transform:uppercase;
+            margin:10px 6px 6px; font-weight:800; opacity:.9;
+        }
+        .submenu{ display:flex; flex-direction:column; margin:4px 0 12px 34px; }
+        .submenu a{ padding:10px; border-radius:10px; font-weight:600; opacity:.95; }
+        .submenu a:hover{ background:rgba(255,255,255,.12); transform:none; }
     </style>
 
     <div class="dashboard-container">
@@ -45,10 +52,49 @@
                 <span class="bebas text-shadow-black" style="text-align: center">FERRETERÍA HERNADEZ</span>
             </div>
 
-            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><i class="fa-solid fa-home"></i><span class="bebas">INICIO</span></a>
+            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">
+                <i class="fa-solid fa-home"></i><span class="bebas">INICIO</span>
+            </a>
 
+            {{-- ================== CATÁLOGO ================== --}}
+            <div class="nav-title">Catálogo</div>
 
-            <a href="{{ url('/') }}" class="logout"><i class="fa-solid fa-arrow-left"></i><span class="bebas">SALIR</span></a>
+            {{-- Categorías --}}
+            <a href="{{ route('admin.categorias.index') }}"
+               class="{{ request()->routeIs('admin.categorias.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-tags"></i><span class="bebas">CATEGORÍAS</span>
+            </a>
+
+            {{-- Submenú SOLO cuando estás en rutas de categorías --}}
+            @if(request()->routeIs('admin.categorias.*'))
+                <div class="submenu">
+                    @php($currentId = request()->route('categoria')?->id)
+                    @foreach(($categoriasSidebar ?? []) as $cat)
+                        <a href="{{ route('admin.categorias.show', $cat) }}"
+                           class="{{ (int)$currentId === (int)$cat->id ? 'active' : '' }}">
+                            <i class="fa-solid fa-angle-right"></i><span>{{ $cat->nombre }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Municipios --}}
+            <a href="{{ route('admin.municipios.index') }}"
+               class="{{ request()->routeIs('admin.municipios.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-city"></i><span class="bebas">MUNICIPIOS</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Direcciones --}}
+            <a href="{{ route('admin.direcciones.index') }}"
+               class="{{ request()->routeIs('admin.direcciones.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-location-dot"></i>
+                <span class="bebas">DIRECCIONES</span>
+            </a>
+            {{-- =============================================== --}}
+            <a href="{{ url('/') }}" class="logout">
+                <i class="fa-solid fa-arrow-left"></i><span class="bebas">SALIR</span>
+            </a>
         </aside>
 
         {{-- Área de contenido del dashboard --}}
