@@ -16,9 +16,10 @@ class PermissionsSeeder extends Seeder
 
         // Solo módulos que SI usarás ahora
         $modules = [
-            'personas','categorias','direcciones','municipios',
-            'proveedores','clientes','empleados','ventas','compras'
+            'personas','categorias','direcciones','municipios','marcas','unidades',
+            'proveedores','clientes','empleados','ventas','compras','productos'
         ];
+
 
 
         $actions = ['viewAny','view','create','update','delete'];

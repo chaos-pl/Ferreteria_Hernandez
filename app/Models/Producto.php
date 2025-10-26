@@ -3,30 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
 class Producto extends Model
 {
-    //
-    use HasFactory;
+    use HasFactory, SoftDeletes;
+
     protected $table = 'productos';
 
-
     protected $fillable = [
-        'nombre',
-        'descripcion',
-        'precio',
-        'existencias',
-        'estado', // 'activo' | 'inactivo'
+        'nombre','descripcion','categorias_id','unidades_id','marcas_id',
+        'precio','imagen_url','estado','existencias'
     ];
+
     protected $casts = [
         'precio' => 'decimal:2',
         'existencias' => 'integer',
     ];
 
+    // Relaciones
+    public function categoria() { return $this->belongsTo(Categoria::class, 'categorias_id'); }
+    public function unidad()    { return $this->belongsTo(Unidad::class,    'unidades_id'); }
+    public function marca()     { return $this->belongsTo(Marca::class,     'marcas_id'); }
 
-    protected $attributes = [
-        'estado' => 'activo',
-        'existencias' => 0,
-    ];
+    // Scopes útiles
+    public function scopeActivos($q) { return $q->where('estado','activo'); }
 }

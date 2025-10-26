@@ -3,9 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class UpdateDireccionRequest extends FormRequest
+class StoreUnidadRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,9 +22,15 @@ class UpdateDireccionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'calle'         => ['required','string','max:150'],
-            'colonia'       => ['nullable','string','max:150'],
-            'municipios_id' => ['nullable','integer','exists:municipios,id'],
+            'nombre'      => ['required','string','max:50','unique:unidades,nombre'],
+            'abreviatura' => ['required','string','max:10','unique:unidades,abreviatura'],
+        ];
+    }
+    public function attributes(): array
+    {
+        return [
+            'nombre' => 'nombre',
+            'abreviatura' => 'abreviatura',
         ];
     }
 }

@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateDireccionRequest extends FormRequest
+class UpdateUnidadRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,10 +22,17 @@ class UpdateDireccionRequest extends FormRequest
      */
     public function rules(): array
     {
+        $id = $this->unidad?->id;
         return [
-            'calle'         => ['required','string','max:150'],
-            'colonia'       => ['nullable','string','max:150'],
-            'municipios_id' => ['nullable','integer','exists:municipios,id'],
+            'nombre'      => ['required','string','max:50', Rule::unique('unidades','nombre')->ignore($id)],
+            'abreviatura' => ['required','string','max:10', Rule::unique('unidades','abreviatura')->ignore($id)],
+        ];
+    }
+    public function attributes(): array
+    {
+        return [
+            'nombre' => 'nombre',
+            'abreviatura' => 'abreviatura',
         ];
     }
 }

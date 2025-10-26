@@ -6,17 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Marca extends Model
+class Unidad extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'marcas';
+    protected $table = 'unidades';
 
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre','abreviatura'];
 
-    // Relación útil (opcional)
     public function productos()
     {
-        return $this->hasMany(Producto::class, 'marcas_id');
+        return $this->hasMany(Producto::class, 'unidades_id');
     }
 }

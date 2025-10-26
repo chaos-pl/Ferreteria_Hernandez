@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -26,6 +27,10 @@ class User extends Authenticatable
         'personas_id',
         'estado', // 'activo' | 'inactivo'
     ];
+    public function persona()
+    {
+        return $this->belongsTo(\App\Models\Persona::class, 'personas_id');
+    }
 
     /**
      * The attributes that should be hidden for serialization.

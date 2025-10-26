@@ -92,6 +92,44 @@
                 <span class="bebas">DIRECCIONES</span>
             </a>
             {{-- =============================================== --}}
+
+            {{-- Marcas --}}
+            <a href="{{ route('admin.marcas.index') }}"
+               class="{{ request()->routeIs('admin.marcas.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-trademark"></i>
+                <span class="bebas">MARCAS</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Personas --}}
+            <a href="{{ route('admin.personas.index') }}"
+               class="{{ request()->routeIs('admin.personas.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-user"></i><span class="bebas">PERSONAS</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Unidades --}}
+            <a href="{{ route('admin.unidades.index') }}"
+               class="{{ request()->routeIs('admin.unidades.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-ruler-combined"></i><span class="bebas">UNIDADES</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Proveedores --}}
+            <a href="{{ route('admin.proveedores.index') }}"
+               class="{{ request()->routeIs('admin.proveedores.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-truck-field"></i><span class="bebas">PROVEEDORES</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Productos --}}
+            <a href="{{ route('admin.productos.index') }}"
+               class="{{ request()->routeIs('admin.productos.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-boxes-stacked"></i><span class="bebas">PRODUCTOS</span>
+            </a>
+            {{-- =============================================== --}}
+
+
             <a href="{{ url('/') }}" class="logout">
                 <i class="fa-solid fa-arrow-left"></i><span class="bebas">SALIR</span>
             </a>
