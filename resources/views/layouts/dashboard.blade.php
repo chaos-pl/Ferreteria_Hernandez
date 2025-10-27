@@ -129,6 +129,30 @@
             </a>
             {{-- =============================================== --}}
 
+            {{-- ===== Asignaciones producto–proveedor ===== --}}
+            <a href="{{ route('admin.asignaciones.index') }}"
+               class="{{ request()->routeIs('admin.asignaciones.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-link"></i>
+                <span class="bebas">ASIGNACIONES</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Users --}}
+            <a href="{{ route('admin.users.index') }}"
+               class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-gear"></i>
+                <span class="bebas">USUARIOS</span>
+            </a>
+            {{-- =============================================== --}}
+
+            {{-- Compras --}}
+            <a href="{{ route('admin.compras.index') }}"
+               class="{{ request()->routeIs('admin.compras.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-truck"></i><span class="bebas">COMPRAS</span>
+            </a>
+            {{-- =============================================== --}}
+
+
 
             <a href="{{ url('/') }}" class="logout">
                 <i class="fa-solid fa-arrow-left"></i><span class="bebas">SALIR</span>

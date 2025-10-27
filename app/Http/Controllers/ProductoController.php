@@ -74,7 +74,7 @@ class ProductoController extends Controller
     {
         $data = $request->validated();
 
-       
+
         if ($request->hasFile('imagen')) {
             $path = $request->file('imagen')->store('productos', 'public'); // guarda en storage/app/public/productos
             $data['imagen_url'] = Storage::url($path); // => /storage/productos/xxxx.jpg

@@ -39,12 +39,6 @@
                            value="{{ old('telefono') }}" maxlength="20">
                     @error('telefono')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-8">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                           value="{{ old('email') }}" maxlength="150">
-                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
 
                 <div class="col-12">
                     <label class="form-label">Dirección (opcional)</label>

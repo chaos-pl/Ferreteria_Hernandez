@@ -29,4 +29,15 @@ class Producto extends Model
 
     // Scopes útiles
     public function scopeActivos($q) { return $q->where('estado','activo'); }
+    public function asignaciones()
+    {
+        return $this->hasMany(AsignaProductoProveedor::class, 'productos_id');
+    }
+
+    public function proveedores()
+    {
+        return $this->belongsToMany(Proveedor::class, 'asigna_productos_proveedores', 'productos_id', 'proveedores_id')
+            ->withPivot(['id','sku_proveedor','plazo_entrega'])
+            ->using(\App\Models\AsignaProductoProveedor::class);
+    }
 }

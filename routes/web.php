@@ -8,6 +8,11 @@ use App\Http\Controllers\DireccionController;
 use App\Http\Controllers\MarcaController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\AsignaProductoProveedorController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\CompraController;
+
+
 
 
 
@@ -64,6 +69,27 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('productos', ProductoController::class)
         ->parameters(['productos' => 'producto']);
 });
+
+//Ruta de asignaProductoProveedor
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('asignaciones', AsignaProductoProveedorController::class)
+        ->parameters(['asignaciones' => 'asignacion']);
+});
+
+//Ruta de users
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('users', UserController::class)
+        ->parameters(['users' => 'user']);
+});
+
+//Ruta de Compras
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('compras', CompraController::class)
+        ->parameters(['compras' => 'compra']);
+});
+
+
+
 
 Auth::routes();
 
