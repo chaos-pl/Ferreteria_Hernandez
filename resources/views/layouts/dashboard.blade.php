@@ -145,6 +145,9 @@
             </a>
             {{-- =============================================== --}}
 
+            {{-- Operación --}}
+            <div class="nav-title">Operación</div>
+
             {{-- Compras --}}
             <a href="{{ route('admin.compras.index') }}"
                class="{{ request()->routeIs('admin.compras.*') ? 'active' : '' }}">
@@ -152,7 +155,12 @@
             </a>
             {{-- =============================================== --}}
 
-
+            {{-- Ventas --}}
+                <a href="{{ route('admin.ventas.index') }}"
+                   class="{{ request()->routeIs('admin.ventas.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-receipt"></i><span class="bebas">VENTAS</span>
+                </a>
+            {{-- =============================================== --}}
 
             <a href="{{ url('/') }}" class="logout">
                 <i class="fa-solid fa-arrow-left"></i><span class="bebas">SALIR</span>

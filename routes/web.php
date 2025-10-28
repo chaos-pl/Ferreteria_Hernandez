@@ -11,6 +11,8 @@ use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\AsignaProductoProveedorController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CompraController;
+use App\Http\Controllers\Admin\VentaController;
+
 
 
 
@@ -86,6 +88,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('compras', CompraController::class)
         ->parameters(['compras' => 'compra']);
+});
+
+//Ruta de Ventas
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('ventas', VentaController::class)
+            ->parameters(['ventas' => 'venta']); // {venta}
+
+    });
 });
 
 

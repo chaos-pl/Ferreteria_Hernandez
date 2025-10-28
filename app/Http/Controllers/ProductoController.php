@@ -76,8 +76,8 @@ class ProductoController extends Controller
 
 
         if ($request->hasFile('imagen')) {
-            $path = $request->file('imagen')->store('productos', 'public'); // guarda en storage/app/public/productos
-            $data['imagen_url'] = Storage::url($path); // => /storage/productos/xxxx.jpg
+            $path = $request->file('imagen')->store('productos', 'public');
+            $data['imagen_url'] = Storage::url($path);
         }
 
 
