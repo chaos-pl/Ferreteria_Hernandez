@@ -22,7 +22,7 @@ class CategoriaController extends Controller
     }
 
 
-    public function index(request $request)
+    public function index(Request $request)
     {
         //
         $q = $request->get('q');
@@ -63,10 +63,24 @@ class CategoriaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Categoria $categoria)
+    public function show(Request $request, Categoria $categoria)
     {
-        //
-        return view('admin.categorias.show', compact('categoria'));
+        $q       = trim((string) $request->get('q'));
+        $perPage = (int) $request->get('per_page', 12);
+
+        $productos = \App\Models\Producto::with(['marca:id,nombre','unidad:id,nombre'])
+            ->where('categorias_id', $categoria->id)
+            ->when($q, fn($x)=>$x->where(function($y) use ($q){
+                $y->where('nombre','like',"%{$q}%")
+                    ->orWhere('descripcion','like',"%{$q}%");
+            }))
+            // OJO: incluye imagen_url en el select si limitas columnas
+            ->select('id','nombre','precio','existencias','estado','marcas_id','unidades_id','imagen_url')
+            ->latest('id')
+            ->paginate(in_array($perPage,[6,12,24,48]) ? $perPage : 12)
+            ->withQueryString();
+
+        return view('admin.categorias.show', compact('categoria','productos','q','perPage'));
     }
 
     /**

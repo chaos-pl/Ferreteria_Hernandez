@@ -4,69 +4,71 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Persona;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class RegisterController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Register Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles the registration of new users as well as their
-    | validation and creation. By default this controller uses a trait to
-    | provide this functionality without requiring any additional code.
-    |
-    */
-
     use RegistersUsers;
 
-    /**
-     * Where to redirect users after registration.
-     *
-     * @var string
-     */
     protected $redirectTo = '/home';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest');
     }
 
-    /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
+    // VALIDACIÓN: username (único en users.name) + email + password
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'username'  => ['required','string','max:255', Rule::unique('users','name')],
+            'email'     => ['required','string','email','max:255','unique:users,email'],
+            'password'  => ['required','string','min:8','confirmed'],
+
+            // Datos de Persona (opcionales)
+            'nombre'    => ['nullable','string','max:120'],
+            'ap'        => ['nullable','string','max:120'],
+            'am'        => ['nullable','string','max:150'],
+            'telefono'  => ['nullable','string','max:20'],
         ]);
     }
 
-    /**
-     * Create a new user instance after a valid registration.
-     *
-     * @param  array  $data
-     * @return \App\Models\User
-     */
+    // CREA Persona (si viene) + User (name = username) + asigna rol "cliente"
     protected function create(array $data)
     {
-        return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+        return DB::transaction(function () use ($data) {
+            $personaId = null;
+
+            if (!empty($data['nombre']) || !empty($data['ap']) || !empty($data['am']) || !empty($data['telefono'])) {
+                $persona = Persona::create([
+                    'nombre'         => $data['nombre']   ?? null,
+                    'ap'             => $data['ap']       ?? null,
+                    'am'             => $data['am']       ?? null,
+                    'telefono'       => $data['telefono'] ?? null,
+                    'direcciones_id' => null,
+                ]);
+                $personaId = $persona->id;
+            }
+
+            $user = User::create([
+                'personas_id' => $personaId,
+                'name'        => $data['username'],   // nombre de usuario -> users.name
+                'email'       => $data['email'],
+                'password'    => Hash::make($data['password']),
+                'estado'      => 'activo',
+            ]);
+
+            // Requiere HasRoles en el modelo User
+            if (method_exists($user, 'assignRole')) {
+                $user->assignRole('cliente');
+            }
+
+            return $user;
+        });
     }
 }
