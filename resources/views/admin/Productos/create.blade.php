@@ -3,7 +3,11 @@
 @section('dashboard-content')
     <div class="container py-4">
         <h3 class="mb-3">Nuevo producto</h3>
-
+        @if($errors->any())
+            <div class="alert alert-danger">
+                <strong>Error:</strong> {{ $errors->first() }}
+            </div>
+        @endif
         @if ($errors->any())
             <div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
         @endif
@@ -65,15 +69,8 @@
                     @error('existencias')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="col-md-3">
-                    <label class="form-label">Estado</label>
-                    <select name="estado" class="form-select @error('estado') is-invalid @enderror" required>
-                        @foreach(['activo','inactivo'] as $opt)
-                            <option value="{{ $opt }}" {{ old('estado','activo')===$opt?'selected':'' }}>{{ ucfirst($opt) }}</option>
-                        @endforeach
-                    </select>
-                    @error('estado')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
+                <input type="hidden" name="estado" value="activo">
+
 
                 <div class="col-md-12">
                     <label class="form-label">Descripción</label>

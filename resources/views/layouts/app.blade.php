@@ -9,6 +9,134 @@
 
     {{-- Fuentes locales --}}
     <style>
+        /* VARIABLES DE COLOR Y TIPOGRAFÍA */
+        :root{
+            --orange-900:#8a3b00;
+            --orange-700:#ff6a00;
+            --orange-600:#ff7a1a;
+            --orange-500:#ff8c00;
+            --orange-300:#ffb347;
+            --dark:#0f0f10;
+            --muted:#6b7280;
+            --light:#f8f9fb;
+            --card:#ffffff;
+
+            --font-display:'Bebas Neue', sans-serif;
+            --font-body:'Archivo', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ========= NAVBAR GENERAL ========= */
+        .navbar-orange{
+            background:linear-gradient(90deg, var(--dark), #1a1a1c);
+        }
+        .navbar-brand{
+            font-family:var(--font-display);
+            letter-spacing:1px;
+            font-weight:700;
+            color:#fff !important;
+        }
+        .nav-link{
+            color:#eaeaea!important;
+            opacity:.9;
+            font-weight:500;
+        }
+        .nav-link:hover{
+            opacity:1;
+        }
+
+        /* Ícono hamburguesa */
+        .navbar-toggler{
+            border-color:rgba(255,255,255,.35);
+        }
+        .navbar-toggler-icon{
+            filter:invert(1);
+        }
+
+        /* ===================== BUSCADOR ===================== */
+        .nav-search .search-wrap{
+            background:#fff;
+            border-radius:16px;
+            padding:.6rem;
+            box-shadow:0 10px 28px rgba(0,0,0,.08);
+            max-width:720px;
+            margin-inline:auto;
+        }
+        .nav-search input{
+            border:0;
+            font-family:var(--font-body);
+        }
+        .nav-search .btn{
+            height:40px;
+            border-radius:12px;
+            font-weight:600;
+            background:var(--orange-700);
+            border:0;
+        }
+        .nav-search .btn:hover{
+            background:var(--orange-600);
+        }
+
+        /* En pantallas móviles ocupa el 100% */
+        @media (max-width: 991.98px){
+            .nav-search .search-wrap{
+                max-width:100%;
+            }
+        }
+
+        /* ===================== CARRITO ===================== */
+        .cart-btn{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:.5rem;
+            padding:.4rem .6rem;
+            border:1px solid rgba(255,255,255,.35);
+            border-radius:12px;
+            color:#fff;
+            background:transparent;
+            position:relative;
+        }
+        .cart-btn:hover{
+            background:rgba(255,255,255,.08);
+            color:#fff;
+        }
+        .badge-cart{
+            position:absolute;
+            top:-6px;
+            right:-6px;
+            font-size:.70rem;
+            border-radius:999px;
+            padding:.15rem .38rem;
+            background:var(--orange-600);
+            color:#fff;
+        }
+
+        /* Ajuste preventivo para que los dropdown no se corten */
+        .navbar{
+            z-index:1035;
+        }
+        .navbar .container,
+        .navbar .row,
+        .navbar [class*="col-"]{
+            overflow:visible;
+        }
+        .dropdown-menu{
+            z-index:1080;
+        }
+
+        /* QUITAR BORDES DEL INPUT DENTRO DEL BUSCADOR */
+        .search-wrap input:focus{
+            box-shadow:none !important;
+            outline:0 !important;
+        }
+
+        /* Alineación óptima del contenido */
+        .navbar .row{
+            --bs-gutter-x:1rem;
+        }
+    </style>
+
+    <style>
         @font-face{
             font-family:'Bebas Neue';
             src:url('{{ asset('fonts/bebasneue/BebasNeue-Regular.ttf') }}') format('truetype');
@@ -79,88 +207,121 @@
 <div id="app">
 
     {{-- NAV --}}
-    <nav class="navbar navbar-expand-lg navbar-orange shadow-sm">
-        <div class="container-fluid">
-            <div class="row w-100 align-items-center g-2">
+    {{-- ================= NAVBAR UNIFICADO ================= --}}
+    <nav class="navbar navbar-expand-lg navbar-orange sticky-top">
+        <div class="container">
+            <div class="row align-items-center w-100 g-2">
 
-                {{-- Col 1: Logos + Nombre --}}
-                <div class="col-6 col-md-4 d-flex align-items-center">
-                    <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-                        {{-- Logo(s). Usa los que tengas en /public/img/ --}}
-                        @if(file_exists(public_path('img/logo.png')))
-                            <img src="{{ asset('img/logo.png') }}" alt="Logo" height="56" class="me-2">
-                        @endif
-                        @if(file_exists(public_path('img/logo_sec.png')))
-                            <img src="{{ asset('img/logo_sec.png') }}" alt="Logo 2" height="44" class="me-2 d-none d-md-inline">
-                        @endif
-                        <span>FERRETERÍA HERNÁNDEZ</span>
+                {{-- Izquierda: Marca --}}
+                <div class="col-6 col-lg-3 order-1">
+                    <a class="navbar-brand" href="{{ url('/') }}">
+                        FERRETERÍA HERNÁNDEZ
                     </a>
                 </div>
 
-                {{-- Col 2: Frase ferretera al centro (md+) --}}
-                <div class="col-md-4 text-center d-none d-md-block">
-                    <div class="bebas slogan-1" style="font-size:1.05rem;">
-                        LAS MEJORES OFERTAS EN HERRAMIENTAS Y FERRETERÍA
-                    </div>
-                    <div class="slogan-2" style="font-size:.95rem;">
-                        Todo para tu obra y hogar · calidad profesional y precio justo
-                    </div>
-                </div>
+                {{-- Móvil: Carrito + Hamburguesa --}}
+                <div class="col-6 d-lg-none order-2 d-flex justify-content-end align-items-center gap-2">
 
-                {{-- Col 3: Botones de acceso / usuario --}}
-                <div class="col-6 col-md-4 d-flex justify-content-end align-items-center">
-                    <ul class="navbar-nav flex-row align-items-center gap-2">
-                        {{-- Botón Inicio (siempre visible) --}}
-                        <li class="nav-item">
-                            <a class="btn-home text-decoration-none" href="{{ url('/') }}">Inicio</a>
-                        </li>
+                    {{-- Botón carrito --}}
+                    <button class="position-relative cart-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#cartModal">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="badge-cart">{{ $cartCount ?? 0 }}</span>
+                    </button>
 
-                        @guest
-                            @if(Route::has('login'))
-                                <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Ingresar</a></li>
-                            @endif
-                            @if(Route::has('register'))
-                                <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Registrarse</a></li>
-                            @endif
-                        @else
-                            <li class="nav-item dropdown position-static">
-                                <a id="navbarDropdown"
-                                   class="nav-link dropdown-toggle"
-                                   href="#" role="button"
-                                   data-bs-toggle="dropdown" aria-expanded="false">
-                                    {{ Auth::user()->name }}
-                                </a>
-
-                                <ul class="dropdown-menu dropdown-menu-end shadow">
-                                    @if (Route::has('home'))
-                                        <li><a class="dropdown-item" href="{{ route('home') }}">Dashboard</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                    @endif
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('logout') }}"
-                                           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            Cerrar sesión
-                                        </a>
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                            @csrf
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                        @endguest
-                    </ul>
-
-                    {{-- Toggler solo visible en móvil --}}
-                    <button class="navbar-toggler ms-2 d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#navCollapse" aria-label="Menú">
+                    {{-- Botón menú --}}
+                    <button class="navbar-toggler" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#navMain">
                         <span class="navbar-toggler-icon"></span>
                     </button>
+                </div>
+
+                {{-- Centro: Barra de búsqueda --}}
+                <div class="col-12 col-lg-6 order-4 order-lg-2 nav-search">
+                    <form class="search-wrap d-flex align-items-center gap-2" method="GET" action="{{ route('shop.catalogo') }}">
+                        <input type="search" name="q" class="form-control"
+                               placeholder="Buscar productos (ej. taladro, brocas, pintura)...">
+                        <button class="btn btn-primary px-3" type="submit">Buscar</button>
+                    </form>
+                </div>
+
+                {{-- Derecha --}}
+                <div class="col-12 col-lg-3 order-3 order-lg-3">
+                    <div id="navMain" class="collapse navbar-collapse justify-content-lg-end">
+
+                        <ul class="navbar-nav align-items-lg-center gap-lg-3 ms-lg-2">
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="#contacto">Contacto</a>
+                            </li>
+
+                            {{-- Si es cliente, mostrar catálogo --}}
+                            @auth
+                                @role('cliente')
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('shop.catalogo') }}">Catálogo</a>
+                                </li>
+                                @endrole
+                            @endauth
+
+                            {{-- Carrito desktop --}}
+                            <li class="nav-item d-none d-lg-inline">
+                                <button class="position-relative cart-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
+                                    <i class="fa-solid fa-cart-shopping"></i>
+                                    <span class="badge-cart">{{ $cartCount ?? 0 }}</span>
+                                </button>
+                            </li>
+
+                            {{-- Login / Usuario --}}
+                            {{-- Login / Usuario --}}
+                            @guest
+                                <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Ingresar</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Registrarse</a></li>
+                            @else
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                                        {{ Auth::user()->name }}
+                                    </a>
+
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+
+                                        {{-- Mostrar Dashboard solo si NO es cliente --}}
+                                        @unless(auth()->user()->hasRole('cliente'))
+                                            <li><a class="dropdown-item" href="{{ route('home') }}">Dashboard</a></li>
+                                            <li><hr></li>
+                                        @endunless
+
+                                        {{-- Logout --}}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('logout') }}"
+                                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                                Cerrar sesión
+                                            </a>
+                                        </li>
+                                    </ul>
+
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                        @csrf
+                                    </form>
+                                </li>
+                            @endguest
+
+
+                        </ul>
+
+                    </div>
                 </div>
 
             </div>
         </div>
     </nav>
 
-    <main class="py-3">
+    {{-- Asegura que el modal esté disponible --}}
+    @include('shop.partials.modal-carrito')
+
+
+    <main class="py">
         @yield('content')
     </main>
 

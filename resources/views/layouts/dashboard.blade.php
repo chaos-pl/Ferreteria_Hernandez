@@ -43,7 +43,7 @@
         .submenu a:hover{ background:rgba(255,255,255,.12); transform:none; }
     </style>
 
-    <div class="dashboard-container">
+    <div class="dashboard-container" style="margin-top: 20px;">
         {{-- Sidebar --}}
         <aside class="sidebar">
             <div class="brand">
@@ -57,10 +57,11 @@
 
             {{-- ================== CATÁLOGO (solo si hay algo visible) ================== --}}
             @canany([
-                'categorias.viewAny','productos.viewAny','marcas.viewAny','unidades.viewAny',
-                'municipios.viewAny','direcciones.viewAny'
-            ])
-                <div class="nav-title">Catálogo</div>
+    'categorias.viewAny','productos.viewAny','marcas.viewAny','unidades.viewAny',
+    'municipios.viewAny','direcciones.viewAny','promociones.viewAny'
+])
+
+            <div class="nav-title">Catálogo</div>
 
                 @can('categorias.viewAny')
                     <a href="{{ route('admin.categorias.index') }}"
@@ -89,7 +90,15 @@
                     </a>
                 @endcan
 
-                @can('marcas.viewAny')
+                @can('promociones.viewAny')
+                    <a href="{{ route('admin.promociones.index') }}"
+                       class="{{ request()->routeIs('admin.promociones.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-percent"></i>
+                        <span class="bebas">PROMOCIONES</span>
+                    </a>
+                @endcan
+
+            @can('marcas.viewAny')
                     <a href="{{ route('admin.marcas.index') }}"
                        class="{{ request()->routeIs('admin.marcas.*') ? 'active' : '' }}">
                         <i class="fa-solid fa-trademark"></i><span class="bebas">MARCAS</span>

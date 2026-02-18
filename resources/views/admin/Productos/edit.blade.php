@@ -63,15 +63,6 @@
                     @error('existencias')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="col-md-3">
-                    <label class="form-label">Estado</label>
-                    <select name="estado" class="form-select @error('estado') is-invalid @enderror" required>
-                        @foreach(['activo','inactivo'] as $opt)
-                            <option value="{{ $opt }}" {{ old('estado',$producto->estado)===$opt?'selected':'' }}>{{ ucfirst($opt) }}</option>
-                        @endforeach
-                    </select>
-                    @error('estado')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
 
                 <div class="col-md-12">
                     <label class="form-label">Descripción</label>

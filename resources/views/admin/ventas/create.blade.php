@@ -1,124 +1,170 @@
 @extends('layouts.dashboard')
 
 @section('dashboard-content')
+
+    @if($errors->any())
+        <div class="alert alert-danger">{{ $errors->first() }}</div>
+    @endif
+
     <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="mb-0">Nueva venta</h3>
+        <div class="d-flex justify-content-between mb-3">
+            <h3>Nueva venta</h3>
             <a href="{{ route('admin.ventas.index') }}" class="btn btn-secondary">Volver</a>
         </div>
 
-        <form action="{{ route('admin.ventas.store') }}" method="post">
+        <form method="POST" action="{{ route('admin.ventas.store') }}">
             @csrf
 
+            {{-- CLIENTE --}}
             <div class="card mb-3">
                 <div class="card-body row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Cliente (user)</label>
+                    <div class="col-md-6">
+                        <label class="form-label">Cliente</label>
                         <select name="users_id" class="form-select" required>
-                            <option value="">-- Selecciona --</option>
+                            <option value="" disabled selected>-- Selecciona --</option>
                             @foreach($usuarios as $u)
-                                <option value="{{ $u->id }}" {{ old('users_id')==$u->id?'selected':'' }}>
-                                    {{ $u->name }}
-                                </option>
+                                <option value="{{ $u->id }}">{{ $u->name }}</option>
                             @endforeach
                         </select>
-                        @error('users_id') <small class="text-danger">{{ $message }}</small> @enderror
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Fecha venta</label>
-                        <input type="datetime-local" name="fecha_venta" class="form-control"
-                               value="{{ old('fecha_venta', $venta->fecha_venta?->format('Y-m-d\TH:i')) }}" required>
-                        @error('fecha_venta') <small class="text-danger">{{ $message }}</small> @enderror
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Estado</label>
-                        <select name="estado" class="form-select">
-                            @foreach(['carrito','pagada','enviada','entregada','cancelada'] as $e)
-                                <option {{ old('estado',$venta->estado)===$e ? 'selected':'' }} value="{{ $e }}">{{ ucfirst($e) }}</option>
-                            @endforeach
-                        </select>
-                        @error('estado') <small class="text-danger">{{ $message }}</small> @enderror
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Descuentos</label>
-                        <input type="number" step="0.01" name="descuentos" class="form-control" value="{{ old('descuentos',0) }}">
-                        @error('descuentos') <small class="text-danger">{{ $message }}</small> @enderror
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Impuestos</label>
-                        <input type="number" step="0.01" name="impuestos" class="form-control" value="{{ old('impuestos',0) }}">
-                        @error('impuestos') <small class="text-danger">{{ $message }}</small> @enderror
                     </div>
                 </div>
             </div>
 
+            {{-- DETALLE --}}
             <div class="card">
-                <div class="card-header fw-bold">Detalle</div>
+                <div class="card-header fw-bold">Detalle de venta</div>
                 <div class="card-body">
+
                     <div id="rows">
-                        @php $oldCount = max(1, count(old('app_id',[]))); @endphp
-                        @for($i=0;$i<$oldCount;$i++)
-                            <div class="row g-2 align-items-end mb-2 detalle-row">
-                                <div class="col-md-6">
-                                    <label class="form-label">Asignación producto–proveedor</label>
-                                    <select name="app_id[]" class="form-select" required>
-                                        <option value="">-- Selecciona --</option>
-                                        @foreach($apps as $a)
-                                            <option value="{{ $a->id }}">
-                                                {{ $a->producto->nombre }}
-                                                {{ $a->proveedor->persona->nombre }} {{ $a->proveedor->persona->ap }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('app_id.'.$i) <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Cantidad</label>
-                                    <input type="number" min="1" name="cantidad[]" class="form-control" value="{{ old('cantidad')[$i] ?? 1 }}" required>
-                                    @error('cantidad.'.$i) <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Precio unit.</label>
-                                    <input type="number" step="0.01" min="0" name="precio_unit[]" class="form-control" value="{{ old('precio_unit')[$i] ?? 0 }}" required>
-                                    @error('precio_unit.'.$i) <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-outline-danger w-100 btn-remove">Quitar</button>
+                        <div class="row g-3 detalle-row mb-3">
+
+                            {{-- SELECT PRODUCTO --}}
+                            <select name="app_id[]" class="form-select app-select" required>
+                                <option value="" disabled selected>-- Selecciona el producto --</option>
+
+                                @foreach($apps as $a)
+
+                                    @php
+                                        // EVITA EL ERROR SI EL PRODUCTO NO EXISTE
+                                        if (!$a->producto) {
+                                            continue; // salta este elemento
+                                        }
+
+                                        $promo = $a->producto->promocionActiva();
+                                        $descuento = $promo ? $promo->descuento : 0;
+                                    @endphp
+
+                                    <option
+                                        value="{{ $a->id }}"
+                                        data-precio="{{ $a->producto->precio }}"
+                                        data-descuento="{{ $descuento }}"
+                                    >
+                                        {{ $a->producto->nombre }}
+                                        (Proveedor: {{ $a->proveedor->persona->nombre }} {{ $a->proveedor->persona->ap }})
+                                    </option>
+
+                                @endforeach
+
+                            </select>
+
+
+                            {{-- CANTIDAD --}}
+                            <div class="col-md-2">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" name="cantidad[]" class="form-control cantidad-input" min="1" required>
+                            </div>
+
+                            {{-- INFO PRECIOS (VISUAL) --}}
+                            <div class="col-md-4">
+                                <div class="bg-light border p-2 rounded">
+                                    <small>Precio base:</small>
+                                    <div class="fw-bold precio-base">$0.00</div>
+
+                                    <small>Descuento:</small>
+                                    <div class="fw-bold text-primary descuento">0%</div>
+
+                                    <small>Precio final:</small>
+                                    <div class="fw-bold text-success precio-final">$0.00</div>
+
+                                    <small>Impuesto (16%):</small>
+                                    <div class="fw-bold text-danger impuesto">$0.00</div>
                                 </div>
                             </div>
-                        @endfor
+
+                            {{-- REMOVER --}}
+                            <div class="col-12">
+                                <button type="button" class="btn btn-outline-danger btn-remove">Quitar</button>
+                            </div>
+
+                        </div>
                     </div>
-                    <button type="button" id="btn-add" class="btn btn-outline-secondary mt-2">Agregar renglón</button>
+
+                    <button type="button" id="btn-add" class="btn btn-outline-secondary mt-2">
+                        Agregar renglón
+                    </button>
+
                 </div>
+
                 <div class="card-footer text-end">
-                    <button class="btn btn-primary">Guardar</button>
+                    <button class="btn btn-primary">Guardar venta</button>
                 </div>
             </div>
         </form>
     </div>
 
+    {{-- JAVASCRIPT --}}
     <script>
+        function actualizarInfo(row) {
+            const sel = row.querySelector('.app-select');
+            const precioBase = parseFloat(sel.selectedOptions[0].dataset.precio || 0);
+            const descuento = parseFloat(sel.selectedOptions[0].dataset.descuento || 0);
+
+            const precioFinal = precioBase - (precioBase * (descuento / 100));
+            const impuesto = precioFinal * 0.16;
+
+            row.querySelector('.precio-base').textContent = '$' + precioBase.toFixed(2);
+            row.querySelector('.descuento').textContent = descuento + '%';
+            row.querySelector('.precio-final').textContent = '$' + precioFinal.toFixed(2);
+            row.querySelector('.impuesto').textContent = '$' + impuesto.toFixed(2);
+        }
+
+        document.addEventListener('change', function(e){
+            if(e.target.classList.contains('app-select')){
+                const row = e.target.closest('.detalle-row');
+                actualizarInfo(row);
+            }
+        });
+
+        // Botón agregar renglón
         document.getElementById('btn-add').addEventListener('click', () => {
             const rows = document.getElementById('rows');
-            const tpl  = rows.querySelector('.detalle-row');
-            const node = tpl.cloneNode(true);
+            const tpl = rows.querySelector('.detalle-row');
+            const clone = tpl.cloneNode(true);
 
-            node.querySelectorAll('input').forEach(i => i.value = i.name.includes('cantidad') ? 1 : 0);
-            node.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+            clone.querySelectorAll('input').forEach(i => i.value = "");
+            clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
 
-            rows.appendChild(node);
-            hookRemove(node.querySelector('.btn-remove'));
+            clone.querySelector('.precio-base').textContent = '$0.00';
+            clone.querySelector('.descuento').textContent = '0%';
+            clone.querySelector('.precio-final').textContent = '$0.00';
+            clone.querySelector('.impuesto').textContent = '$0.00';
+
+            rows.appendChild(clone);
+
+            hookRemove(clone.querySelector('.btn-remove'));
         });
+
+        // Botón quitar
         function hookRemove(btn){
             btn.addEventListener('click', (e) => {
                 const row = e.target.closest('.detalle-row');
-                const rows = document.querySelectorAll('.detalle-row');
-                if(rows.length > 1) row.remove();
+                if(document.querySelectorAll('.detalle-row').length > 1){
+                    row.remove();
+                }
             });
         }
+
         document.querySelectorAll('.btn-remove').forEach(hookRemove);
     </script>
+
 @endsection

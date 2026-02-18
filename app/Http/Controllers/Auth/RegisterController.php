@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Persona;
+use App\Models\Direccion;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Models\Municipio;
 
 class RegisterController extends Controller
 {
@@ -22,48 +24,67 @@ class RegisterController extends Controller
         $this->middleware('guest');
     }
 
-    // VALIDACIÓN: username (único en users.name) + email + password
+    // ==============================
+    // VALIDACIÓN COMPLETA
+    // ==============================
+    public function showRegistrationForm()
+    {
+        $municipios = Municipio::orderBy('nombre')->get();
+        return view('auth.register', compact('municipios'));
+    }
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'username'  => ['required','string','max:255', Rule::unique('users','name')],
-            'email'     => ['required','string','email','max:255','unique:users,email'],
-            'password'  => ['required','string','min:8','confirmed'],
+            // USUARIO
+            'username' => ['required','string','max:255', Rule::unique('users','name')],
+            'email'    => ['required','string','email','max:255','unique:users,email'],
+            'password' => ['required','string','min:8','confirmed'],
 
-            // Datos de Persona (opcionales)
-            'nombre'    => ['nullable','string','max:120'],
-            'ap'        => ['nullable','string','max:120'],
-            'am'        => ['nullable','string','max:150'],
-            'telefono'  => ['nullable','string','max:20'],
+            // PERSONA
+            'nombre'   => ['required','string','max:120'],
+            'ap'       => ['required','string','max:120'],
+            'am'       => ['required','string','max:150'],
+            'telefono' => ['required','string','max:20'],
+
+            // DIRECCIÓN (según BD real)
+            'calle'          => ['required','string','max:100'],
+            'colonia'        => ['required','string','max:100'],
+            'municipios_id'  => ['required','integer','exists:municipios,id'],
         ]);
     }
 
-    // CREA Persona (si viene) + User (name = username) + asigna rol "cliente"
+    // ==============================
+    // CREAR DIRECCIÓN + PERSONA + USUARIO
+    // ==============================
     protected function create(array $data)
     {
         return DB::transaction(function () use ($data) {
-            $personaId = null;
 
-            if (!empty($data['nombre']) || !empty($data['ap']) || !empty($data['am']) || !empty($data['telefono'])) {
-                $persona = Persona::create([
-                    'nombre'         => $data['nombre']   ?? null,
-                    'ap'             => $data['ap']       ?? null,
-                    'am'             => $data['am']       ?? null,
-                    'telefono'       => $data['telefono'] ?? null,
-                    'direcciones_id' => null,
-                ]);
-                $personaId = $persona->id;
-            }
+            // 1. Registrar dirección (BD real NO tiene 'numero', 'estado', 'cp')
+            $dir = Direccion::create([
+                'calle'         => $data['calle'],
+                'colonia'       => $data['colonia'],
+                'municipios_id' => $data['municipios_id'],
+            ]);
 
+            // 2. Registrar persona
+            $persona = Persona::create([
+                'nombre'         => $data['nombre'],
+                'ap'             => $data['ap'],
+                'am'             => $data['am'],
+                'telefono'       => $data['telefono'],
+                'direcciones_id' => $dir->id,
+            ]);
+
+            // 3. Registrar usuario
             $user = User::create([
-                'personas_id' => $personaId,
-                'name'        => $data['username'],   // nombre de usuario -> users.name
+                'personas_id' => $persona->id,
+                'name'        => $data['username'],
                 'email'       => $data['email'],
                 'password'    => Hash::make($data['password']),
                 'estado'      => 'activo',
             ]);
 
-            // Requiere HasRoles en el modelo User
             if (method_exists($user, 'assignRole')) {
                 $user->assignRole('cliente');
             }

@@ -12,12 +12,11 @@ class Venta extends Model
     protected $table = 'ventas';
 
     protected $fillable = [
-        'users_id','fecha_venta','estado',
+        'users_id','estado',
         'subtotal','descuentos','impuestos','total',
     ];
 
     protected $casts = [
-        'fecha_venta' => 'datetime',
         'subtotal'    => 'decimal:2',
         'descuentos'  => 'decimal:2',
         'impuestos'   => 'decimal:2',
@@ -35,11 +34,4 @@ class Venta extends Model
         return $this->hasMany(VentaDetalle::class, 'ventas_id');
     }
 
-    // Recalcular totales con base en detalles
-    public function recalcTotales(): void
-    {
-        $this->subtotal   = $this->detalles()->sum('subtotal');
-        $this->total      = max(0, ($this->subtotal - $this->descuentos) + $this->impuestos);
-        $this->save();
-    }
 }

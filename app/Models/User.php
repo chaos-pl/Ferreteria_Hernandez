@@ -31,6 +31,11 @@ class User extends Authenticatable
     {
         return $this->belongsTo(\App\Models\Persona::class, 'personas_id');
     }
+    public function carritos()
+    {
+        return $this->hasMany(\App\Models\Carrito::class,'users_id');
+    }
+
 
     /**
      * The attributes that should be hidden for serialization.

@@ -5,37 +5,33 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Venta;
 use Illuminate\Http\Request;
-use App\Http\Requests\VentaRequest;
 use App\Models\User;
-use App\Models\VentaDetalle;
-use App\Models\AsignaProductoProveedor;
 use Illuminate\Support\Facades\DB;
-use App\Models\Producto;
-use Illuminate\Validation\ValidationException;
+use App\Models\AsignaProductoProveedor;
 
 class VentaController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:ventas.viewAny')->only(['index']);
-        $this->middleware('permission:ventas.create')->only(['create','store']);
+        $this->middleware('permission:ventas.create')->only(['create', 'store']);
         $this->middleware('permission:ventas.view')->only(['show']);
-        $this->middleware('permission:ventas.update')->only(['edit','update']);
+        $this->middleware('permission:ventas.update')->only(['edit', 'update']);
         $this->middleware('permission:ventas.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
     {
-        $q       = trim((string)$request->get('q',''));
+        $q = trim((string)$request->get('q', ''));
         $perPage = (int)$request->get('per_page', 10);
 
         $query = Venta::with('user')
-            ->when($q !== '', function($qq) use ($q) {
+            ->when($q !== '', function ($qq) use ($q) {
                 $qq->where('id', (int)$q)
                     ->orWhere('estado','like', "%{$q}%")
                     ->orWhereHas('user', fn($u)=>$u->where('name','like',"%{$q}%"));
             })
-            ->orderByDesc('fecha_venta');
+            ->orderByDesc('created_at');
 
         $ventas = $query->paginate($perPage)->withQueryString();
 
@@ -45,218 +41,139 @@ class VentaController extends Controller
     public function create()
     {
         $usuarios = User::orderBy('name')->get(['id','name']);
-        $apps = \App\Models\AsignaProductoProveedor::with([
-            'producto:id,nombre',
-            'proveedor:id,personas_id',
-            'proveedor.persona:id,nombre,ap,am',
-        ])->orderBy('id','asc')->get();
+
+        $apps = AsignaProductoProveedor::with([
+            'producto' => fn($q) => $q->where('estado', 'activo'),
+            'proveedor.persona'
+        ])
+            ->whereHas('producto', fn($q)=>$q->where('estado','activo'))
+            ->get();
+
 
         $venta = new Venta([
-            'fecha_venta' => now(),
-            'estado'      => 'carrito',
-            'descuentos'  => 0,
-            'impuestos'   => 0,
+            'estado' => 'pagada'
         ]);
 
-        return view('admin.ventas.create', compact('venta','usuarios','apps'));
+        return view('admin.ventas.create', compact('usuarios','apps','venta'));
     }
 
-    public function store(VentaRequest $request)
+    public function store(Request $request)
     {
-        return DB::transaction(function() use ($request) {
+        $request->validate([
+            'users_id' => 'required|exists:users,id',
+            'app_id' => 'required|array',
+            'cantidad' => 'required|array'
+        ]);
 
+        DB::beginTransaction();
+
+        try {
+
+            // 1. Crear venta
             $venta = Venta::create([
-                'users_id'    => $request->users_id,
-                'fecha_venta' => $request->fecha_venta,
-                'estado'      => $request->estado,
-                'descuentos'  => $request->input('descuentos',0),
-                'impuestos'   => $request->input('impuestos',0),
-                'subtotal'    => 0,
-                'total'       => 0,
+                'users_id'   => $request->users_id,
+                'estado'     => 'pagada',
+                'subtotal'   => 0,
+                'descuentos' => 0,
+                'impuestos'  => 0,
+                'total'      => 0
             ]);
 
-            $appIDs  = (array) ($request->app_id      ?? []);
-            $cantids = (array) ($request->cantidad    ?? []);
-            $precios = (array) ($request->precio_unit ?? []);
-
-            $lineas = $this->normalizarLineas($appIDs, $cantids, $precios);
-
-            foreach ($lineas as $ln) {
-                VentaDetalle::create([
-                    'ventas_id'                       => $venta->id,
-                    'asigna_productos_proveedores_id' => $ln['app_id'],
-                    'cantidad'                        => $ln['cantidad'],
-                    'precio_unit'                     => $ln['precio_unit'],
-                    'subtotal'                        => $ln['cantidad'] * $ln['precio_unit'],
+            // 2. Crear detalles sin precios (procedure los actualiza)
+            foreach ($request->app_id as $i => $appId) {
+                $venta->detalles()->create([
+                    'asigna_productos_proveedores_id' => $appId,
+                    'cantidad' => (int)$request->cantidad[$i],
+                    'precio_unit' => 0,
+                    'subtotal' => 0
                 ]);
             }
 
-            $venta->recalcTotales();
+            // 3. Llamar el procedure
+            DB::statement("CALL procesar_venta($venta->id)");
 
-            // ↓ Si se crea ya como pagada, descuenta existencias
-            if ($venta->estado === 'pagada') {
-                $this->aplicarStock($venta); // descuenta
-            }
+            DB::commit();
 
             return redirect()
                 ->route('admin.ventas.show', $venta)
-                ->with('status','Venta creada correctamente');
-        });
+                ->with('status', 'Venta registrada correctamente');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+
+            DB::rollBack();
+
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
     }
+
 
     public function show(Venta $venta)
     {
-        $venta->load(['user','detalles.asignaProductoProveedor.producto','detalles.asignaProductoProveedor.proveedor']);
+        $venta->load([
+            'user',
+            'detalles.asignaProductoProveedor.producto',
+            'detalles.asignaProductoProveedor.proveedor.persona'
+        ]);
+
         return view('admin.ventas.show', compact('venta'));
     }
 
     public function edit(Venta $venta)
     {
-        $venta->load('detalles');
         $usuarios = User::orderBy('name')->get(['id','name']);
-        $apps = \App\Models\AsignaProductoProveedor::with([
-            'producto:id,nombre',
-            'proveedor:id,personas_id',
-            'proveedor.persona:id,nombre,ap,am',
-        ])->orderBy('id','asc')->get();
 
-        return view('admin.ventas.edit', compact('venta','usuarios','apps'));
+        // No permitir editar ventas canceladas
+        if ($venta->estado === 'cancelada') {
+            return back()->withErrors(['error' => 'No se puede editar una venta cancelada.']);
+        }
+
+        return view('admin.ventas.edit', compact('venta','usuarios'));
     }
 
-    public function update(VentaRequest $request, Venta $venta)
+    public function update(Request $request, Venta $venta)
     {
-        return DB::transaction(function() use ($request, $venta) {
+        $request->validate([
+            'users_id' => 'required|exists:users,id',
+            'estado'   => 'required|in:pagada,cancelada'
+        ]);
 
-            // Estado anterior (para detectar transición)
-            $wasPagada = $venta->estado === 'pagada';
+        if ($venta->estado === 'cancelada') {
+            return back()->withErrors(['error' => 'No se puede modificar una venta que ya fue cancelada.']);
+        }
 
-            // Guarda detalle anterior (para revertir stock si era pagada)
-            $detallesAnteriores = $venta->detalles()
-                ->with('asignaProductoProveedor:id,productos_id')
-                ->get();
+        // 2. Si el estado cambia a cancelada, llamar el PROCEDURE
+        if ($request->estado === 'cancelada' && $venta->estado === 'pagada') {
 
-            // Actualiza encabezado
-            $venta->update([
-                'users_id'    => $request->users_id,
-                'fecha_venta' => $request->fecha_venta,
-                'estado'      => $request->estado,
-                'descuentos'  => $request->input('descuentos',0),
-                'impuestos'   => $request->input('impuestos',0),
-            ]);
+            DB::beginTransaction();
 
-            // Si estaba pagada, primero REGRESA stock de los renglones anteriores
-            if ($wasPagada) {
-                $this->ajustarStockPorLineas($detallesAnteriores, +1);
-            }
+            // Llamar procedure cancelar_venta
+            DB::statement("CALL cancelar_venta($venta->id)");
 
-            // Reemplaza renglones
-            $venta->detalles()->withTrashed()->forceDelete();
+            DB::commit();
 
-            $appIDs  = (array) ($request->app_id      ?? []);
-            $cantids = (array) ($request->cantidad    ?? []);
-            $precios = (array) ($request->precio_unit ?? []);
+            return redirect()->route('admin.ventas.show', $venta)
+                ->with('status', 'Venta cancelada correctamente. Se regresaron las existencias.');
+        }
 
-            $lineas = $this->normalizarLineas($appIDs, $cantids, $precios);
+        // 3. Si solo está cambiando cliente o dejando pagada
+        $venta->update([
+            'users_id' => $request->users_id,
+            'estado'   => $request->estado
+        ]);
 
-            foreach ($lineas as $ln) {
-                VentaDetalle::create([
-                    'ventas_id'                       => $venta->id,
-                    'asigna_productos_proveedores_id' => $ln['app_id'],
-                    'cantidad'                        => $ln['cantidad'],
-                    'precio_unit'                     => $ln['precio_unit'],
-                    'subtotal'                        => $ln['cantidad'] * $ln['precio_unit'],
-                ]);
-            }
-
-            $venta->recalcTotales();
-
-            // Si AHORA queda en pagada, aplica descuento de stock con los renglones nuevos
-            if ($venta->estado === 'pagada') {
-                $this->aplicarStock($venta); // descuenta
-            }
-
-            return redirect()
-                ->route('admin.ventas.show', $venta)
-                ->with('status','Venta actualizada');
-        });
+        return redirect()->route('admin.ventas.show', $venta)
+            ->with('status', 'Venta actualizada correctamente.');
     }
+
 
     public function destroy(Venta $venta)
     {
-        return DB::transaction(function() use ($venta) {
-            // Si estaba pagada, regresar stock antes de borrar
-            if ($venta->estado === 'pagada') {
-                $this->ajustarStockPorLineas(
-                    $venta->detalles()->with('asignaProductoProveedor:id,productos_id')->get(),
-                    +1
-                );
-            }
-            $venta->delete();
-            return redirect()->route('admin.ventas.index')->with('status','Venta eliminada');
-        });
+        // Si se elimina, es mejor cancelarla antes
+        $venta->delete();
+
+        return redirect()->route('admin.ventas.index')
+            ->with('status','Venta eliminada');
     }
-    private function aplicarStock(Venta $venta): void
-    {
-        $venta->loadMissing('detalles.asignaProductoProveedor');
-        $this->ajustarStockPorLineas($venta->detalles, -1);
-    }
-
-    /**
-     * Ajusta existencias por líneas: sign = -1 descuenta, +1 regresa.
-     * Bloquea filas para concurrencia y evita negativos.
-     */
-    private function ajustarStockPorLineas($detalles, int $sign): void
-    {
-        foreach ($detalles as $d) {
-            $app = $d->asignaProductoProveedor;              // tiene productos_id
-            if (!$app) continue;
-
-            // lock FOR UPDATE para evitar carreras
-            $producto = Producto::whereKey($app->productos_id)->lockForUpdate()->first();
-
-            if (!$producto) continue;
-
-            $delta = $sign * (int)$d->cantidad;
-
-            if ($sign < 0 && $producto->existencias < $d->cantidad) {
-                throw ValidationException::withMessages([
-                    'existencias' => "Stock insuficiente del producto '{$producto->nombre}'. Disponibles: {$producto->existencias}, solicitados: {$d->cantidad}."
-                ]);
-            }
-
-            // aplica ajuste y guarda
-            $producto->existencias = max(0, $producto->existencias + $delta);
-            $producto->save();
-        }
-    }
-    /**
-     * Une líneas repetidas por app_id: suma cantidades y usa el último precio.
-     * Retorna un arreglo plano con ['app_id','cantidad','precio_unit'].
-     */
-    private function normalizarLineas(array $appIDs, array $cantids, array $precios): array
-    {
-        $agg = [];
-        foreach ($appIDs as $i => $id) {
-            $appId    = (int) $id;
-            if ($appId <= 0) continue;
-
-            $cant     = (int) ($cantids[$i]  ?? 0);
-            if ($cant <= 0)  continue;
-
-            $precio   = (float) ($precios[$i] ?? 0);
-
-            if (isset($agg[$appId])) {
-                $agg[$appId]['cantidad']    += $cant;
-                $agg[$appId]['precio_unit']  = $precio; // o calcula un promedio si lo prefieres
-            } else {
-                $agg[$appId] = [
-                    'app_id'      => $appId,
-                    'cantidad'    => $cant,
-                    'precio_unit' => $precio,
-                ];
-            }
-        }
-        return array_values($agg);
-    }
-
 }

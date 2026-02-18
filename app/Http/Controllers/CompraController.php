@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Compra;
 use Illuminate\Http\Request;
-use App\Models\CompraDetalle;
 use App\Models\Proveedor;
 use App\Models\AsignaProductoProveedor;
 use App\Http\Requests\StoreCompraRequest;
@@ -14,9 +13,6 @@ use Illuminate\Support\Facades\DB;
 
 class CompraController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function __construct()
     {
         $this->middleware('permission:compras.viewAny')->only('index');
@@ -25,6 +21,7 @@ class CompraController extends Controller
         $this->middleware('permission:compras.update')->only(['edit','update']);
         $this->middleware('permission:compras.delete')->only('destroy');
     }
+
     public function index(Request $request)
     {
         $q       = trim((string) $request->get('q',''));
@@ -41,136 +38,123 @@ class CompraController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return view('admin.compras.index', [
-            'compras'  => $list,
-            'q'        => $q,
-            'perPage'  => $perPage,
-        ]);
+        return view('admin.compras.index', compact('list','q','perPage'))
+            ->with('compras', $list);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $proveedores = Proveedor::with('persona')->orderBy('id')->get();
-        // Ojo: en una versión más avanzada, filtra asignaciones por proveedor seleccionado (AJAX).
         $asignaciones = AsignaProductoProveedor::with(['producto','proveedor.persona'])
             ->orderBy('id')->get();
 
         return view('admin.compras.create', compact('proveedores','asignaciones'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreCompraRequest $request)
     {
         $data = $request->validated();
 
-        DB::transaction(function() use ($data) {
+        DB::beginTransaction();
+        try {
+
+            // 1. Crear compra
             $compra = Compra::create([
                 'proveedores_id' => $data['proveedores_id'],
                 'users_id'       => Auth::id(),
-                'fecha_compra'   => $data['fecha_compra'],
-                'estado'         => $data['estado'],
-                'total'          => 0,
+                'fecha_compra'   => now(),
+                'estado'         => 'ordenada',
+                'total'          => 0, // valor inicial
             ]);
 
-            $total = 0;
-            foreach ($data['asigna_ids'] as $i => $asignaId) {
-                $cant  = (int) $data['cantidades'][$i];
-                $costo = (float) $data['costos'][$i];
-                $sub   = $cant * $costo;
+            // 2. Crear detalles
+            $asignas     = $data['asigna_ids'];
+            $cantidades  = $data['cantidades'];
+            $costos      = $data['costos'];
 
-                CompraDetalle::create([
-                    'compras_id'                         => $compra->id,
-                    'asigna_productos_proveedores_id'    => $asignaId,
-                    'cantidad'                           => $cant,
-                    'costo_unit'                         => $costo,
-                    'subtotal'                           => $sub,
+            for ($i = 0; $i < count($asignas); $i++) {
+
+                $subtotal = $cantidades[$i] * $costos[$i];
+
+                $compra->detalles()->create([
+                    'asigna_productos_proveedores_id' => $asignas[$i],
+                    'cantidad'                        => $cantidades[$i],
+                    'costo_unit'                      => $costos[$i],
+                    'subtotal'                        => $subtotal,
                 ]);
-
-                $total += $sub;
             }
 
-            $compra->update(['total' => $total]);
-        });
+            // 3. Ahora sí calcular total
+            $compra->recalcularTotal();
 
-        return redirect()->route('admin.compras.index')
-            ->with('status','Compra registrada.');
+            DB::commit();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
+
+        return redirect()
+            ->route('admin.compras.index')
+            ->with('status','Compra registrada correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
+
+
     public function show(Compra $compra)
     {
         $compra->load(['proveedor.persona','usuario','detalles.asignacion.producto','detalles.asignacion.proveedor.persona']);
         return view('admin.compras.show', compact('compra'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Compra $compra)
     {
         $compra->load('detalles.asignacion.producto','detalles.asignacion.proveedor.persona');
-
-        $proveedores = Proveedor::with('persona')->orderBy('id')->get();
-        $asignaciones = AsignaProductoProveedor::with(['producto','proveedor.persona'])
-            ->orderBy('id')->get();
-
-        return view('admin.compras.edit', compact('compra','proveedores','asignaciones'));
+        return view('admin.compras.edit', compact('compra'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateCompraRequest $request, Compra $compra)
     {
-        $data = $request->validated();
+        DB::beginTransaction();
 
-        DB::transaction(function() use ($compra, $data) {
+        try {
+            $prevEstado = $compra->estado;
+
             $compra->update([
-                'proveedores_id' => $data['proveedores_id'],
-                'fecha_compra'   => $data['fecha_compra'],
-                'estado'         => $data['estado'],
+                'estado' => $request->estado,
             ]);
 
-            // Reemplazamos detalles
-            $compra->detalles()->delete();
+            // Si cambia a recibida, se ingresan existencias
+            if ($prevEstado !== 'recibida' && $request->estado === 'recibida') {
 
-            $total = 0;
-            foreach ($data['asigna_ids'] as $i => $asignaId) {
-                $cant  = (int) $data['cantidades'][$i];
-                $costo = (float) $data['costos'][$i];
-                $sub   = $cant * $costo;
+                foreach ($compra->detalles as $d) {
 
-                CompraDetalle::create([
-                    'compras_id'                         => $compra->id,
-                    'asigna_productos_proveedores_id'    => $asignaId,
-                    'cantidad'                           => $cant,
-                    'costo_unit'                         => $costo,
-                    'subtotal'                           => $sub,
-                ]);
-
-                $total += $sub;
+                    DB::table('productos')
+                        ->where('id', function($q) use ($d){
+                            $q->select('productos_id')
+                                ->from('asigna_productos_proveedores')
+                                ->where('id', $d->asigna_productos_proveedores_id);
+                        })
+                        ->increment('existencias', $d->cantidad);
+                }
             }
-            $compra->update(['total' => $total]);
-        });
 
-        return redirect()->route('admin.compras.show', $compra)
-            ->with('status','Compra actualizada.');
+            DB::commit();
+            return redirect()->route('admin.compras.show',$compra)
+                ->with('status','Compra actualizada correctamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Compra $compra)
     {
         $compra->delete();
         return redirect()->route('admin.compras.index')
-            ->with('status','Compra eliminada.');
+            ->with('status','Compra eliminada correctamente.');
     }
 }

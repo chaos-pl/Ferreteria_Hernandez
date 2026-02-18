@@ -15,7 +15,7 @@
         <div class="card mb-3">
             <div class="card-body row g-3">
                 <div class="col-md-3"><strong>Cliente:</strong> {{ $venta->user?->name ?? '—' }}</div>
-                <div class="col-md-3"><strong>Fecha:</strong> {{ $venta->fecha_venta->format('Y-m-d H:i') }}</div>
+                <div class="col-md-3"><strong>Fecha:</strong> {{ $venta->created_at->format('Y-m-d H:i') }}</div>
                 <div class="col-md-3"><strong>Estado:</strong> <span class="badge text-bg-secondary">{{ $venta->estado }}</span></div>
                 <div class="col-md-3"><strong>Subtotal:</strong> ${{ number_format($venta->subtotal,2) }}</div>
                 <div class="col-md-3"><strong>Descuentos:</strong> ${{ number_format($venta->descuentos,2) }}</div>
@@ -25,30 +25,94 @@
         </div>
 
         <div class="card">
-            <div class="card-header fw-bold">Detalle</div>
+            <div class="card-header fw-bold">Detalle de la venta</div>
             <div class="table-responsive">
                 <table class="table table-striped align-middle mb-0">
                     <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Asignación</th>
+                        <th>Producto</th>
                         <th>Cantidad</th>
-                        <th>Precio unit.</th>
-                        <th class="text-end">Subtotal</th>
+                        <th>Precio base</th>
+                        <th>Descuento</th>
+                        <th>Precio final</th>
+                        <th>Subtotal</th>
+                        <th>Impuesto</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($venta->detalles as $d)
+
+                        @php
+                            $app = $d->asignaProductoProveedor;
+
+                            // Producto puede ser null
+                            $producto = $app->producto ?? null;
+
+                            // Proveedor puede ser null
+                            $proveedor = $app->proveedor->persona ?? null;
+
+                            // precios
+                            $precioBase = $producto->precio ?? 0;
+
+                            $descuento = $precioBase > 0
+                                ? round(100 - (($d->precio_unit / $precioBase) * 100), 2)
+                                : 0;
+
+                            $precioFinal = $d->precio_unit;
+                            $subtotal = $d->subtotal;
+                            $impuesto = round($precioFinal * 0.16, 2);
+                        @endphp
+
                         <tr>
                             <td>{{ $d->id }}</td>
-                            <td>#{{ $d->asigna_productos_proveedores_id }} — {{ $d->asignaProductoProveedor->producto->nombre ?? 'Producto' }} / {{ $d->asignaProductoProveedor->proveedor->nombre_comercial ?? 'Proveedor' }}</td>
+
+                            <td>
+                                {{-- NOMBRE DEL PRODUCTO --}}
+                                @if($producto)
+                                    {{ $producto->nombre }}
+                                @else
+                                    <span class="text-danger">Producto eliminado</span>
+                                @endif
+
+                                <br>
+
+                                {{-- PROVEEDOR --}}
+                                <small class="text-muted">
+                                    Prov:
+                                    @if($proveedor)
+                                        {{ $proveedor->nombre }}
+                                    @else
+                                        Proveedor eliminado
+                                    @endif
+                                </small>
+                            </td>
+
                             <td>{{ $d->cantidad }}</td>
-                            <td>${{ number_format($d->precio_unit,2) }}</td>
-                            <td class="text-end">${{ number_format($d->subtotal,2) }}</td>
+
+                            <td>${{ number_format($precioBase, 2) }}</td>
+
+                            <td>
+                                @if($descuento > 0)
+                                    <span class="text-success fw-bold">{{ $descuento }}%</span>
+                                @else
+                                    <span class="text-muted">0%</span>
+                                @endif
+                            </td>
+
+                            <td>${{ number_format($precioFinal, 2) }}</td>
+                            <td>${{ number_format($subtotal, 2) }}</td>
+                            <td>${{ number_format($impuesto, 2) }}</td>
                         </tr>
+
                     @endforeach
+
                     @if($venta->detalles->isEmpty())
-                        <tr><td colspan="5" class="text-center text-muted py-4">Sin renglones</td></tr>
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                Sin renglones
+                            </td>
+                        </tr>
                     @endif
                     </tbody>
                 </table>

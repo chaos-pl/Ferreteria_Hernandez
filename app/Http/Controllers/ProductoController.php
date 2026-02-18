@@ -13,7 +13,6 @@ use App\Http\Requests\UpdateProductoRequest;
 
 class ProductoController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware('permission:productos.viewAny')->only('index');
@@ -56,9 +55,6 @@ class ProductoController extends Controller
         ));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $categorias = Categoria::orderBy('nombre')->get(['id','nombre']);
@@ -67,36 +63,37 @@ class ProductoController extends Controller
         return view('admin.productos.create', compact('categorias','unidades','marcas'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreProductoRequest $request)
     {
         $data = $request->validated();
 
+        // El estado NO se manipula
+        $data['estado'] = 'activo';
 
         if ($request->hasFile('imagen')) {
             $path = $request->file('imagen')->store('productos', 'public');
             $data['imagen_url'] = Storage::url($path);
         }
 
+        try {
+            // Crear producto
+            Producto::create($data);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
 
-        Producto::create($data);
-        return redirect()->route('admin.productos.index')->with('status','Producto creado');
+        return redirect()->route('admin.productos.index')
+            ->with('status','Producto creado correctamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Producto $producto)
     {
         $producto->load(['categoria','unidad','marca']);
         return view('admin.productos.show', compact('producto'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Producto $producto)
     {
         $categorias = Categoria::orderBy('nombre')->get(['id','nombre']);
@@ -105,32 +102,45 @@ class ProductoController extends Controller
         return view('admin.productos.edit', compact('producto','categorias','unidades','marcas'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateProductoRequest $request, Producto $producto)
     {
         $data = $request->validated();
 
-        // Controller (store/update)
         if ($request->hasFile('imagen')) {
-            $path = $request->file('imagen')->store('productos', 'public'); // guarda en storage/app/public/productos
-            $data['imagen_url'] = Storage::url($path); // => /storage/productos/xxxx.jpg
+            $path = $request->file('imagen')->store('productos', 'public');
+            $data['imagen_url'] = Storage::url($path);
         }
 
+        // ESTADO AUTOMÁTICO SEGÚN EXISTENCIAS
+        if ($data['existencias'] == 0) {
+            $data['estado'] = 'inactivo';
+        } else {
+            $data['estado'] = 'activo';
+        }
 
-        $producto->update($data);
-        return redirect()->route('admin.productos.index')->with('status','Producto actualizado');
+        try {
+            $producto->update($data);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
+
+        return redirect()->route('admin.productos.index')
+            ->with('status','Producto actualizado correctamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Producto $producto)
     {
-        //
-        $producto->delete(); // soft delete
-        return redirect()->route('admin.productos.index')->with('status','Producto eliminado');
+        // Cambiar estado a inactivo
+        $producto->estado = 'inactivo';
+        $producto->save();
 
+        // Soft delete (NO elimina de la BD)
+        $producto->delete();
+
+        return redirect()->route('admin.productos.index')
+            ->with('status','Producto desactivado correctamente.');
     }
+
 }

@@ -39,6 +39,7 @@ class Compra extends Model
         return $this->hasMany(\App\Models\CompraDetalle::class, 'compras_id');
     }
 
+
     // Conviene recalcular total al tocar detalles
     public function recalcularTotal(): void
     {

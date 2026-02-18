@@ -44,13 +44,42 @@
                 <tbody>
                 @forelse($compras as $c)
                     <tr>
-                        <td>{{ $c->id }}</td>
+                        <td>#{{ $c->id }}</td>
 
-                        {{-- Ya NO es link: solo texto --}}
-                        <td>{{ $c->proveedor?->persona?->nombre ?? '—' }}</td>
+                        <td>
+                            <strong>{{ $c->proveedor?->persona?->nombre ?? '—' }}</strong>
+                            <div class="text-muted small">
+                                {{-- Mostrar hasta 2 productos --}}
+                                @php
+                                    $productos = $c->detalles
+                                                    ->map(fn($d) => $d->asignacion?->producto?->nombre)
+                                                    ->filter()
+                                                    ->take(2)
+                                                    ->join(', ');
+                                @endphp
+
+                                {{ $productos }}
+
+                                @if($c->detalles->count() > 2)
+                                    +{{ $c->detalles->count() - 2 }} más
+                                @endif
+
+                                {{-- Cantidad total --}}
+                                • {{ $c->detalles->sum('cantidad') }} artículos
+                            </div>
+                        </td>
 
                         <td>{{ optional($c->fecha_compra)->format('Y-m-d H:i') }}</td>
-                        <td><span class="badge text-bg-light">{{ $c->estado }}</span></td>
+
+                        <td>
+        <span class="badge
+            @if($c->estado === 'ordenada') bg-warning
+            @elseif($c->estado === 'recibida') bg-success
+            @else bg-secondary @endif">
+            {{ $c->estado }}
+        </span>
+                        </td>
+
                         <td class="text-end">${{ number_format($c->total,2) }}</td>
 
                         <td class="text-end">
@@ -74,6 +103,7 @@
                         </td>
                     </tr>
                 @empty
+
                     <tr><td colspan="6" class="text-center text-muted py-4">Sin compras</td></tr>
                 @endforelse
                 </tbody>

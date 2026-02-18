@@ -30,4 +30,5 @@ class Categoria extends Model
     {
         return $this->hasMany(\App\Models\Producto::class, 'categorias_id');
     }
+
 }

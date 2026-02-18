@@ -82,11 +82,11 @@
                             @if($p->imagen_url)
                                 <img src="{{ $p->imagen_url }}" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;margin-right:6px">
                             @endif
-                            @can('productos.view')
-                                <a class="text-decoration-none" href="{{ route('admin.productos.show',$p) }}">{{ $p->nombre }}</a>
-                            @else
-                                {{ $p->nombre }}
-                            @endcan
+                                @can('productos.view')
+                                    <a class="text-decoration-none" href="{{ route('admin.productos.show',$p) }}">{{ $p->nombre }}</a>
+                                @else
+                                    {{ $p->nombre }}
+                                @endcan
                         </td>
                         <td class="text-muted">{{ $p->categoria?->nombre }}</td>
                         <td class="text-muted">{{ $p->marca?->nombre ?? '—' }}</td>

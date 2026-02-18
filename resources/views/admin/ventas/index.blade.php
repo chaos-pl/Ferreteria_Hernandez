@@ -46,7 +46,7 @@
                         <td>#{{ $v->id }}</td>
 
                         <td>{{ $v->user?->name ?? '—' }}</td>
-                        <td>{{ optional($v->fecha_venta)->format('Y-m-d H:i') }}</td>
+                        <td>{{ $v->created_at->format('Y-m-d H:i') }}</td>
                         <td><span class="badge text-bg-secondary">{{ $v->estado }}</span></td>
                         <td class="text-end">${{ number_format($v->total,2) }}</td>
 

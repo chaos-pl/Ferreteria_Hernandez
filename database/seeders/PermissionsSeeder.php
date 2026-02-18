@@ -14,13 +14,12 @@ class PermissionsSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Solo módulos que SI usarás ahora
+        // Módulos del sistema
         $modules = [
             'personas','categorias','direcciones','municipios','marcas','unidades',
-            'proveedores','clientes','empleados','ventas','compras','productos','asignaciones','users',
+            'proveedores','clientes','empleados','ventas','compras','productos',
+            'asignaciones','users','promociones','carrito'
         ];
-
-
 
         $actions = ['viewAny','view','create','update','delete'];
 
@@ -34,32 +33,51 @@ class PermissionsSeeder extends Seeder
             }
         }
 
-        // Roles base
+        // Crear roles
         $admin    = Role::firstOrCreate(['name' => 'admin',    'guard_name' => 'web']);
         $vendedor = Role::firstOrCreate(['name' => 'vendedor', 'guard_name' => 'web']);
         $cliente  = Role::firstOrCreate(['name' => 'cliente',  'guard_name' => 'web']);
 
-        // Admin con todo
+        // Admin tiene todos los permisos
         $admin->givePermissionTo(Permission::all());
 
-        // Helper para NO reventar si algún permiso no existe
+        // Helper para evitar errores si un permiso no existe
         $existing = Permission::pluck('name')->all();
         $only = fn(array $arr) => array_values(array_intersect($arr, $existing));
 
-        // Vendedor (ejemplo) => categorías + ventas
+        // PERMISOS PARA VENDEDOR
         $vendedor->syncPermissions($only([
-            'categorias.viewAny','categorias.view','categorias.create','categorias.update',
-            'ventas.viewAny','ventas.view',
-            // 'productos.viewAny','productos.view','productos.create','productos.update', // si decides usar productos
-        ]));
+            // Productos
+            'productos.viewAny','productos.view','productos.create','productos.update',
 
-        // Cliente (ejemplo) => solo ver categorías
-        $cliente->syncPermissions($only([
+            // Categorías
             'categorias.viewAny','categorias.view',
-            // sin carritos.* hasta que lo implementes
+
+            // Ventas
+            'ventas.viewAny','ventas.view','ventas.create',
+
+            // Asignaciones
+            'asignaciones.viewAny','asignaciones.view',
+
+            // Clientes
+            'clientes.viewAny','clientes.view',
         ]));
 
-        // Súper admin de prueba
+        // PERMISOS PARA CLIENTE (COMPRAR SIN VENDEDOR)
+        $cliente->syncPermissions($only([
+            // Ver catálogo
+            'productos.viewAny','productos.view',
+            'categorias.viewAny','categorias.view',
+
+            // Carrito
+            'carrito.viewAny','carrito.view',
+            'carrito.create','carrito.update','carrito.delete',
+
+            // Ventas (solo crear su propia compra)
+            'ventas.create',
+        ]));
+
+        // Crear un super admin de prueba
         $root = User::firstOrCreate(
             ['email' => 'admin@demo.test'],
             ['name' => 'Admin Demo', 'password' => bcrypt('password')]

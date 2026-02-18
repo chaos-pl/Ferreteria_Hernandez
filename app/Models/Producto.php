@@ -40,4 +40,18 @@ class Producto extends Model
             ->withPivot(['id','sku_proveedor','plazo_entrega'])
             ->using(\App\Models\AsignaProductoProveedor::class);
     }
+    public function promociones()
+    {
+        return $this->belongsToMany(Promocion::class, 'asigna_promocion', 'id_producto', 'id_promocion');
+    }
+
+    public function promocionActiva()
+    {
+        return $this->promociones()
+            ->where('fecha_inicio', '<=', now())
+            ->where('fecha_fin', '>=', now())
+            ->orderByDesc('descuento')
+            ->first();
+    }
+
 }

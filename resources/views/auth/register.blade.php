@@ -1,101 +1,188 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">Registro</div>
 
-                    <div class="card-body">
-                        <form method="POST" action="{{ route('register') }}">
-                            @csrf
+    <style>
+        .register-wrapper{
+            min-height: 90vh;
+            display:flex;
+            justify-content:center;
+            align-items:flex-start;
+            padding:50px 20px;
+            background: linear-gradient(135deg, #ff6a00 0%, #ff8c00 40%, #0f0f10 100%);
+        }
 
-                            {{-- Nombre de usuario (users.name) --}}
-                            <div class="form-group row">
-                                <label for="username" class="col-md-4 col-form-label text-md-right">Nombre de usuario</label>
-                                <div class="col-md-6">
-                                    <input id="username" type="text" class="form-control @error('username') is-invalid @enderror"
-                                           name="username" value="{{ old('username') }}" required autofocus>
-                                    @error('username') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        .register-card{
+            width:100%;
+            max-width:1000px;
+            background:#fff;
+            padding:40px 45px;
+            border-radius:22px;
+            box-shadow:0 12px 35px rgba(0,0,0,.25);
+            animation:fadeIn .6s ease-out;
+        }
 
-                            {{-- Email --}}
-                            <div class="form-group row mt-3">
-                                <label for="email" class="col-md-4 col-form-label text-md-right">Dirección de correo electronico</label>
-                                <div class="col-md-6">
-                                    <input id="email" type="email" class="form-control @error('email') is-invalid @enderror"
-                                           name="email" value="{{ old('email') }}" required>
-                                    @error('email') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        .register-title{
+            font-family:'Bebas Neue', sans-serif;
+            font-size:2.6rem;
+            text-align:center;
+            margin-bottom:10px;
+            color:#0f0f10;
+        }
 
-                            {{-- Password --}}
-                            <div class="form-group row mt-3">
-                                <label for="password" class="col-md-4 col-form-label text-md-right">Contraseña</label>
-                                <div class="col-md-6">
-                                    <input id="password" type="password" class="form-control @error('password') is-invalid @enderror"
-                                           name="password" required>
-                                    @error('password') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        .register-sub{
+            text-align:center;
+            color:#6b7280;
+            margin-bottom:35px;
+        }
 
-                            {{-- Confirm --}}
-                            <div class="form-group row mt-3">
-                                <label for="password-confirm" class="col-md-4 col-form-label text-md-right">Confirmar contraseña</label>
-                                <div class="col-md-6">
-                                    <input id="password-confirm" type="password" class="form-control"
-                                           name="password_confirmation" required>
-                                </div>
-                            </div>
+        .section-title{
+            font-family:'Bebas Neue', sans-serif;
+            font-size:1.8rem;
+            color:#ff6a00;
+            margin-bottom:10px;
+            margin-top:20px;
+        }
 
-                            {{-- (Opcional) Datos Persona --}}
-                            <hr class="my-4">
-                            <h5 class="text-center mb-3">Datos Personales</h5>
+        .input-custom{
+            border-radius:12px;
+            padding:.65rem .9rem;
+            border:1px solid #d1d5db;
+        }
+        .input-custom:focus{
+            border-color:#ff6a00;
+            box-shadow:0 0 0 2px rgba(255,106,0,.25);
+        }
 
-                            <div class="form-group row">
-                                <label class="col-md-4 col-form-label text-md-right">Nombre(s)</label>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control @error('nombre') is-invalid @enderror" name="nombre" value="{{ old('nombre') }}">
-                                    @error('nombre') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        .btn-orange{
+            background:#ff6a00;
+            border:none;
+            color:#fff;
+            font-weight:bold;
+            padding:.75rem 1rem;
+            border-radius:10px;
+            min-width:200px;
+            font-size:1.1rem;
+        }
+        .btn-orange:hover{
+            background:#ff7a1a;
+        }
 
-                            <div class="form-group row mt-3">
-                                <label class="col-md-4 col-form-label text-md-right">Apellido paterno</label>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control @error('ap') is-invalid @enderror" name="ap" value="{{ old('ap') }}">
-                                    @error('ap') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        .btn-cancel{
+            background:#b30000;
+            border:none;
+            color:#fff;
+            font-weight:bold;
+            padding:.75rem 1rem;
+            border-radius:10px;
+            min-width:200px;
+            font-size:1.1rem;
+        }
 
-                            <div class="form-group row mt-3">
-                                <label class="col-md-4 col-form-label text-md-right">Apellido materno</label>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control @error('am') is-invalid @enderror" name="am" value="{{ old('am') }}">
-                                    @error('am') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+        @keyframes fadeIn{
+            from { opacity:0; transform:translateY(20px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+    </style>
 
-                            <div class="form-group row mt-3">
-                                <label class="col-md-4 col-form-label text-md-right">Teléfono</label>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control @error('telefono') is-invalid @enderror" name="telefono" value="{{ old('telefono') }}">
-                                    @error('telefono') <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span> @enderror
-                                </div>
-                            </div>
+    <div class="register-wrapper">
+        <div class="register-card">
 
-                            <div class="form-group row mb-0 mt-4">
-                                <div class="col-md-6 offset-md-4">
-                                    <button type="submit" class="btn btn-primary">Registrarse</button>
-                                </div>
-                            </div>
+            <h2 class="register-title">Crear una cuenta</h2>
+            <p class="register-sub">Completa la información para registrarte</p>
 
-                        </form>
-                    </div>
+            <form method="POST" action="{{ route('register') }}" class="row g-4">
+                @csrf
+
+                <!-- DATOS DE CUENTA -->
+                <h3 class="section-title">Datos de Cuenta</h3>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Nombre de usuario *</label>
+                    <input type="text" name="username" class="form-control input-custom"
+                           required minlength="3" maxlength="20" value="{{ old('username') }}">
                 </div>
-            </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Correo electrónico *</label>
+                    <input type="email" name="email" class="form-control input-custom"
+                           required value="{{ old('email') }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Contraseña *</label>
+                    <input type="password" name="password" class="form-control input-custom"
+                           required minlength="8" placeholder="Mínimo 8 dígitos">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Confirmar contraseña *</label>
+                    <input type="password" name="password_confirmation" class="form-control input-custom"
+                           required minlength="8" placeholder="Mínimo 8 dígitos">
+                </div>
+
+
+                <!-- DATOS PERSONALES -->
+                <h3 class="section-title">Datos Personales</h3>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Nombre(s) *</label>
+                    <input type="text" name="nombre" class="form-control input-custom" required maxlength="120">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Apellido paterno *</label>
+                    <input type="text" name="ap" class="form-control input-custom" required maxlength="120">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Apellido materno *</label>
+                    <input type="text" name="am" class="form-control input-custom" required maxlength="150">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Teléfono *</label>
+                    <input type="text" name="telefono" class="form-control input-custom"
+                           required pattern="[0-9]{10}" maxlength="10" placeholder="10 dígitos">
+                </div>
+
+
+                <!-- DIRECCIÓN -->
+                <h3 class="section-title">Dirección</h3>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Calle *</label>
+                    <input type="text" name="calle" class="form-control input-custom" required maxlength="100">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Colonia *</label>
+                    <input type="text" name="colonia" class="form-control input-custom" required maxlength="100">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Municipio *</label>
+                    <select name="municipios_id" class="form-select input-custom" required>
+                        <option value="">Seleccione...</option>
+                        @foreach($municipios as $m)
+                            <option value="{{ $m->id }}">{{ $m->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- BOTONES -->
+                <div class="col-12 text-center mt-4 mb-3 d-flex justify-content-center gap-3 flex-wrap">
+                    <button type="submit" class="btn-orange">
+                        <i class="fa-solid fa-user-plus"></i> Registrarse
+                    </button>
+
+                    <a href="{{ url('/') }}" class="btn-cancel">
+                        <i class="fa-solid fa-arrow-left"></i> Cancelar
+                    </a>
+                </div>
+
+            </form>
         </div>
     </div>
+
 @endsection
